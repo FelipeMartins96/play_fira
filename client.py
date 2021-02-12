@@ -56,7 +56,7 @@ class FiraClient:
         self.vision_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
         self.vision_sock.bind((self.vision_ip, self.vision_port))
 
-    def receive(self):
+    def receive(self, id):
         """Receive package and decode."""
 
         data, _ = self.vision_sock.recvfrom(1024)
@@ -64,9 +64,9 @@ class FiraClient:
         self.frame = FramePB()
         self.frame.parse(decoded_data)
         
-        return self._frame_to_observations()
+        return self._frame_to_observations(id)
 
-    def send(self, commands):        
+    def send(self, commands):
         # prepare commands
         pkt = packet_pb2.Packet()
         d = pkt.cmd.robot_commands
@@ -85,7 +85,10 @@ class FiraClient:
         data = pkt.SerializeToString()
         self.com_socket.sendto(data, self.com_address)
         
-    def _frame_to_observations(self):
+
+    def _frame_to_observations(self, idx):
+
+        index_sequence = {0 : [0, 1, 2], 1 : [1, 0, 2], 2 : [2, 0, 1]}
 
         observation = []
 
@@ -94,7 +97,7 @@ class FiraClient:
         observation.append(normVx(self.frame.ball.v_x))
         observation.append(normVx(self.frame.ball.v_y))
 
-        for i in range(3):
+        for i in index_sequence[idx]:
             observation.append(normX(self.frame.robots_blue[i].x))
             observation.append(normX(self.frame.robots_blue[i].y))
             observation.append(
@@ -114,5 +117,4 @@ class FiraClient:
             observation.append(normVx(self.frame.robots_yellow[i].v_y))
             observation.append(normVt(self.frame.robots_yellow[i].v_theta))
             
-        return np.array(observation)
-        
+        return np.array(observation, dtype=np.float32)

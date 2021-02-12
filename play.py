@@ -72,10 +72,12 @@ if __name__ == "__main__":
     # client = RSim()
 
     while True:
-        obs_v = torch.FloatTensor([client.receive()])
+        obs_v = torch.FloatTensor([client.receive(0), client.receive(1), client.receive(2)])
         mu_v = net(obs_v)
         action = mu_v.squeeze(dim=0).data.numpy()
         action = np.clip(action, -1, 1)
-        lw, rw = _actions_to_v_wheels(action)
-        command = [Robot(yellow=False, id=0, v_wheel1=lw, v_wheel2=rw)]
+        command = []
+        for i in range(3):
+            lw, rw = _actions_to_v_wheels(action[i])
+            command.append(Robot(yellow=False, id=i, v_wheel1=lw, v_wheel2=rw))
         client.send(command)
